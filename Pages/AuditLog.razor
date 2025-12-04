@@ -66,14 +66,14 @@
 
     private Color GetActionColor(string action)
     {
-        return action.ToLower() switch
-        {
-            var a when a.Contains("create") => Color.Success,
-            var a when a.Contains("update") => Color.Info,
-            var a when a.Contains("delete") => Color.Error,
-            var a when a.Contains("approved") => Color.Success,
-            var a when a.Contains("rejected") => Color.Warning,
-            _ => Color.Default
-        };
+        var lowerAction = action.ToLower();
+
+        if (lowerAction.Contains("create")) return Color.Success;
+        if (lowerAction.Contains("update")) return Color.Info;
+        if (lowerAction.Contains("delete")) return Color.Error;
+        if (lowerAction.Contains("approved")) return Color.Success;
+        if (lowerAction.Contains("rejected")) return Color.Warning;
+
+        return Color.Default;
     }
 }
