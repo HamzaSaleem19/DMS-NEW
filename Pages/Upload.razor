@@ -141,7 +141,7 @@
     private List<Tag> _tags = new();
     private IEnumerable<int> _selectedTags = new HashSet<int>();
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         // Load categories and tags - simplified for this example
         _categories = new List<Category>
