@@ -1,0 +1,67 @@
+@page "/login"
+@inject NavigationManager NavigationManager
+
+<PageTitle>Login - DMS</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudPaper Elevation="3" Class="pa-8">
+        <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">
+            Document Management System
+        </MudText>
+        <MudText Typo="Typo.body2" Align="Align.Center" Class="mb-8">
+            Sign in to your account
+        </MudText>
+
+        <EditForm Model="@_model" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+
+            <MudTextField @bind-Value="_model.Email"
+                         Label="Email"
+                         Variant="Variant.Outlined"
+                         InputType="InputType.Email"
+                         Required="true"
+                         Class="mb-4" />
+
+            <MudTextField @bind-Value="_model.Password"
+                         Label="Password"
+                         Variant="Variant.Outlined"
+                         InputType="InputType.Password"
+                         Required="true"
+                         Class="mb-4" />
+
+            <MudCheckBox @bind-Checked="_model.RememberMe" Label="Remember me" Class="mb-4" />
+
+            <MudButton ButtonType="ButtonType.Submit"
+                      Variant="Variant.Filled"
+                      Color="Color.Primary"
+                      FullWidth="true"
+                      Size="Size.Large">
+                Sign In
+            </MudButton>
+        </EditForm>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">
+            Default credentials: admin@dms.com / Admin@123456
+        </MudText>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private LoginModel _model = new();
+
+    private void HandleLogin()
+    {
+        // For demo purposes, redirect to home
+        // In production, implement proper authentication
+        NavigationManager.NavigateTo("/", true);
+    }
+
+    public class LoginModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public bool RememberMe { get; set; }
+    }
+}

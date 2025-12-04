@@ -1,0 +1,10 @@
+@page "/logout"
+@inject NavigationManager NavigationManager
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Redirect to login page
+        NavigationManager.NavigateTo("/login", true);
+    }
+}
