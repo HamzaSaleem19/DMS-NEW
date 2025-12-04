@@ -30,13 +30,13 @@
             </MudSelect>
         </MudItem>
         <MudItem xs="12" md="3">
-            <MudSelect @bind-Value="_selectedStatus"
+            <MudSelect T="DocumentStatus?" @bind-Value="_selectedStatus"
                       Label="Status"
                       Variant="Variant.Outlined"
                       Clearable="true">
                 @foreach (DocumentStatus status in Enum.GetValues(typeof(DocumentStatus)))
                 {
-                    <MudSelectItem Value="@status">@status</MudSelectItem>
+                    <MudSelectItem T="DocumentStatus?" Value="@status">@status</MudSelectItem>
                 }
             </MudSelect>
         </MudItem>
