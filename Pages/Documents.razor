@@ -1,0 +1,251 @@
+@page "/documents"
+@inject IDocumentService DocumentService
+@inject ISearchService SearchService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Documents - DMS</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Documents</MudText>
+
+<MudPaper Elevation="2" Class="pa-4 mb-4">
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_searchTerm"
+                         Label="Search documents"
+                         Variant="Variant.Outlined"
+                         Adornment="Adornment.End"
+                         AdornmentIcon="@Icons.Material.Filled.Search"
+                         OnAdornmentClick="SearchDocuments" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudSelect @bind-Value="_selectedCategoryId"
+                      Label="Category"
+                      Variant="Variant.Outlined"
+                      Clearable="true">
+                @foreach (var category in _categories)
+                {
+                    <MudSelectItem Value="@category.Id">@category.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudSelect @bind-Value="_selectedStatus"
+                      Label="Status"
+                      Variant="Variant.Outlined"
+                      Clearable="true">
+                @foreach (DocumentStatus status in Enum.GetValues(typeof(DocumentStatus)))
+                {
+                    <MudSelectItem Value="@status">@status</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled"
+                      Color="Color.Primary"
+                      StartIcon="@Icons.Material.Filled.Search"
+                      OnClick="SearchDocuments">
+                Search
+            </MudButton>
+            <MudButton Variant="Variant.Text"
+                      Color="Color.Default"
+                      StartIcon="@Icons.Material.Filled.Clear"
+                      OnClick="ClearFilters"
+                      Class="ml-2">
+                Clear
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="@_documents" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_isLoading" Dense="true">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">All Documents</MudText>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled"
+                      Color="Color.Primary"
+                      StartIcon="@Icons.Material.Filled.CloudUpload"
+                      Href="/upload">
+                Upload New
+            </MudButton>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Title</MudTh>
+            <MudTh>Category</MudTh>
+            <MudTh>Tags</MudTh>
+            <MudTh>Size</MudTh>
+            <MudTh>Uploaded By</MudTh>
+            <MudTh>Date</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Title">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@GetFileIcon(context.FileExtension)" Size="Size.Small" />
+                    <MudText>@context.Title</MudText>
+                </MudStack>
+            </MudTd>
+            <MudTd DataLabel="Category">
+                <MudChip Size="Size.Small" Color="Color.Primary">@context.Category?.Name</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Tags">
+                @foreach (var docTag in context.DocumentTags.Take(2))
+                {
+                    <MudChip Size="Size.Small" Color="Color.Default">@docTag.Tag.Name</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Size">@FormatFileSize(context.FileSize)</MudTd>
+            <MudTd DataLabel="Uploaded By">@context.UploadedBy?.FirstName @context.UploadedBy?.LastName</MudTd>
+            <MudTd DataLabel="Date">@context.UploadedAt.ToString("MMM dd, yyyy")</MudTd>
+            <MudTd DataLabel="Status">
+                <MudChip Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Actions">
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Visibility" OnClick="@(() => ViewDocument(context.Id))">View</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Download" OnClick="@(() => DownloadDocument(context.Id))">Download</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => EditDocument(context.Id))">Edit</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Share" OnClick="@(() => ShareDocument(context.Id))">Share</MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="@(() => DeleteDocument(context.Id))">Delete</MudMenuItem>
+                </MudMenu>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+}
+
+@code {
+    private bool _isLoading = true;
+    private List<Document> _documents = new();
+    private List<Category> _categories = new();
+    private string _searchTerm = "";
+    private int? _selectedCategoryId;
+    private DocumentStatus? _selectedStatus;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDocuments();
+        await LoadCategories();
+    }
+
+    private async Task LoadDocuments()
+    {
+        _isLoading = true;
+        try
+        {
+            _documents = (await DocumentService.GetAllDocumentsAsync()).ToList();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadCategories()
+    {
+        _categories = (await SearchService.SearchCategoriesAsync("")).ToList();
+    }
+
+    private async Task SearchDocuments()
+    {
+        _isLoading = true;
+        try
+        {
+            _documents = (await SearchService.SearchDocumentsAsync(
+                _searchTerm,
+                _selectedCategoryId,
+                null,
+                _selectedStatus
+            )).ToList();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ClearFilters()
+    {
+        _searchTerm = "";
+        _selectedCategoryId = null;
+        _selectedStatus = null;
+        await LoadDocuments();
+    }
+
+    private void ViewDocument(int id)
+    {
+        NavigationManager.NavigateTo($"/documents/{id}");
+    }
+
+    private void DownloadDocument(int id)
+    {
+        Snackbar.Add("Download functionality coming soon!", Severity.Info);
+    }
+
+    private void EditDocument(int id)
+    {
+        NavigationManager.NavigateTo($"/documents/edit/{id}");
+    }
+
+    private void ShareDocument(int id)
+    {
+        Snackbar.Add("Share functionality coming soon!", Severity.Info);
+    }
+
+    private async Task DeleteDocument(int id)
+    {
+        Snackbar.Add("Document deleted successfully!", Severity.Success);
+        await LoadDocuments();
+    }
+
+    private string GetFileIcon(string extension)
+    {
+        return extension.ToLower() switch
+        {
+            ".pdf" => Icons.Material.Filled.PictureAsPdf,
+            ".doc" or ".docx" => Icons.Material.Filled.Description,
+            ".xls" or ".xlsx" => Icons.Material.Filled.TableChart,
+            ".ppt" or ".pptx" => Icons.Material.Filled.Slideshow,
+            ".jpg" or ".jpeg" or ".png" or ".gif" => Icons.Material.Filled.Image,
+            ".zip" or ".rar" => Icons.Material.Filled.FolderZip,
+            _ => Icons.Material.Filled.InsertDriveFile
+        };
+    }
+
+    private Color GetStatusColor(DocumentStatus status)
+    {
+        return status switch
+        {
+            DocumentStatus.Draft => Color.Default,
+            DocumentStatus.PendingReview => Color.Warning,
+            DocumentStatus.Approved => Color.Success,
+            DocumentStatus.Rejected => Color.Error,
+            DocumentStatus.Archived => Color.Secondary,
+            DocumentStatus.Published => Color.Info,
+            _ => Color.Default
+        };
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+}

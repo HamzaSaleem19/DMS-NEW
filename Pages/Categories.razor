@@ -1,0 +1,93 @@
+@page "/categories"
+@inject ApplicationDbContext DbContext
+@inject ISnackbar Snackbar
+
+<PageTitle>Categories - DMS</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Categories</MudText>
+<MudText Class="mb-8">Manage document categories</MudText>
+
+<MudGrid>
+    @foreach (var category in _categories)
+    {
+        <MudItem xs="12" sm="6" md="4" lg="3">
+            <MudCard Elevation="2">
+                <MudCardHeader>
+                    <CardHeaderAvatar>
+                        <MudAvatar Color="Color.Primary" Style="@($"background-color: {category.Color};")">
+                            <MudIcon Icon="@GetCategoryIcon(category.Icon)" />
+                        </MudAvatar>
+                    </CardHeaderAvatar>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">@category.Name</MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
+                            <MudMenuItem Icon="@Icons.Material.Filled.Edit">Edit</MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.Delete">Delete</MudMenuItem>
+                        </MudMenu>
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @(category.Description ?? "No description")
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="mt-2">
+                        Documents: @category.Documents.Count
+                    </MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    }
+
+    <MudItem xs="12" sm="6" md="4" lg="3">
+        <MudCard Elevation="2" Style="border: 2px dashed #ccc; min-height: 200px;">
+            <MudCardContent Class="d-flex align-center justify-center" Style="min-height: 200px;">
+                <MudStack AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Large" Color="Color.Primary" />
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="AddCategory">
+                        Add New Category
+                    </MudButton>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<Category> _categories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCategories();
+    }
+
+    private async Task LoadCategories()
+    {
+        _categories = await DbContext.Categories
+            .Include(c => c.Documents)
+            .Where(c => c.IsActive)
+            .ToListAsync();
+    }
+
+    private void AddCategory()
+    {
+        Snackbar.Add("Add category functionality coming soon!", Severity.Info);
+    }
+
+    private string GetCategoryIcon(string? icon)
+    {
+        return icon switch
+        {
+            "folder" => Icons.Material.Filled.Folder,
+            "attach_money" => Icons.Material.Filled.AttachMoney,
+            "people" => Icons.Material.Filled.People,
+            "gavel" => Icons.Material.Filled.Gavel,
+            "campaign" => Icons.Material.Filled.Campaign,
+            "code" => Icons.Material.Filled.Code,
+            "trending_up" => Icons.Material.Filled.TrendingUp,
+            "settings" => Icons.Material.Filled.Settings,
+            _ => Icons.Material.Filled.Category
+        };
+    }
+}

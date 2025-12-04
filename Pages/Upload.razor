@@ -1,0 +1,236 @@
+@page "/upload"
+@using Microsoft.AspNetCore.Components.Forms
+@inject IDocumentService DocumentService
+@inject IFileStorageService FileStorageService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Upload Document - DMS</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Upload Document</MudText>
+<MudText Class="mb-8">Upload a new document to the system</MudText>
+
+<MudPaper Elevation="2" Class="pa-6">
+    <EditForm Model="@_model" OnValidSubmit="HandleUpload">
+        <DataAnnotationsValidator />
+
+        <MudGrid>
+            <MudItem xs="12">
+                <MudFileUpload T="IBrowserFile"
+                              @bind-Files="_file"
+                              Accept="*"
+                              MaximumFileCount="1">
+                    <ButtonTemplate>
+                        <MudPaper Height="200px"
+                                 Outlined="true"
+                                 Class="d-flex align-center justify-center mud-width-full">
+                            <MudStack AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Filled.CloudUpload"
+                                        Size="Size.Large"
+                                        Color="Color.Primary" />
+                                <MudText Typo="Typo.h6">
+                                    @if (_file != null)
+                                    {
+                                        @_file.Name
+                                    }
+                                    else
+                                    {
+                                        @:Click to select a file or drag and drop
+                                    }
+                                </MudText>
+                                @if (_file != null)
+                                {
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                        Size: @FormatFileSize(_file.Size)
+                                    </MudText>
+                                }
+                            </MudStack>
+                        </MudPaper>
+                    </ButtonTemplate>
+                </MudFileUpload>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Title"
+                             Label="Document Title"
+                             Variant="Variant.Outlined"
+                             Required="true"
+                             For="@(() => _model.Title)" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_model.CategoryId"
+                          Label="Category"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          For="@(() => _model.CategoryId)">
+                    @foreach (var category in _categories)
+                    {
+                        <MudSelectItem Value="@category.Id">@category.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Description"
+                             Label="Description"
+                             Variant="Variant.Outlined"
+                             Lines="4"
+                             For="@(() => _model.Description)" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudSelect T="int"
+                          Label="Tags"
+                          MultiSelection="true"
+                          @bind-SelectedValues="_selectedTags"
+                          Variant="Variant.Outlined">
+                    @foreach (var tag in _tags)
+                    {
+                        <MudSelectItem Value="@tag.Id">@tag.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSelect @bind-Value="_model.Status"
+                          Label="Status"
+                          Variant="Variant.Outlined"
+                          Required="true">
+                    @foreach (DocumentStatus status in Enum.GetValues(typeof(DocumentStatus)))
+                    {
+                        <MudSelectItem Value="@status">@status</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton ButtonType="ButtonType.Submit"
+                              Variant="Variant.Filled"
+                              Color="Color.Primary"
+                              StartIcon="@Icons.Material.Filled.CloudUpload"
+                              Disabled="@_isUploading">
+                        @if (_isUploading)
+                        {
+                            <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
+                            @:Uploading...
+                        }
+                        else
+                        {
+                            @:Upload Document
+                        }
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Default"
+                              OnClick="Cancel">
+                        Cancel
+                    </MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    private UploadDocumentModel _model = new();
+    private IBrowserFile? _file;
+    private bool _isUploading = false;
+    private List<Category> _categories = new();
+    private List<Tag> _tags = new();
+    private IEnumerable<int> _selectedTags = new HashSet<int>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load categories and tags - simplified for this example
+        _categories = new List<Category>
+        {
+            new Category { Id = 1, Name = "General" },
+            new Category { Id = 2, Name = "Finance" },
+            new Category { Id = 3, Name = "Human Resources" }
+        };
+
+        _tags = new List<Tag>
+        {
+            new Tag { Id = 1, Name = "Important" },
+            new Tag { Id = 2, Name = "Urgent" },
+            new Tag { Id = 3, Name = "Confidential" }
+        };
+    }
+
+    private async Task HandleUpload()
+    {
+        if (_file == null)
+        {
+            Snackbar.Add("Please select a file to upload", Severity.Warning);
+            return;
+        }
+
+        _isUploading = true;
+        try
+        {
+            // Get current user
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system";
+
+            // Save file
+            var (filePath, fileSize) = await FileStorageService.SaveFileAsync(_file, _file.Name);
+
+            // Create document
+            var document = new Document
+            {
+                Title = _model.Title,
+                Description = _model.Description,
+                FileName = _file.Name,
+                FilePath = filePath,
+                FileExtension = Path.GetExtension(_file.Name),
+                FileSize = fileSize,
+                MimeType = _file.ContentType,
+                CategoryId = _model.CategoryId,
+                Status = _model.Status,
+                UploadedById = userId,
+                UploadedAt = DateTime.UtcNow
+            };
+
+            await DocumentService.CreateDocumentAsync(document);
+
+            Snackbar.Add("Document uploaded successfully!", Severity.Success);
+            NavigationManager.NavigateTo("/documents");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error uploading document: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/documents");
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+
+    public class UploadDocumentModel
+    {
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int CategoryId { get; set; }
+        public DocumentStatus Status { get; set; } = DocumentStatus.Draft;
+    }
+}

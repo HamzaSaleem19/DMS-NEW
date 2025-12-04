@@ -1,0 +1,184 @@
+@page "/"
+@inject IDocumentService DocumentService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Dashboard - DMS</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Dashboard</MudText>
+<MudText Class="mb-8">Welcome to the Document Management System</MudText>
+
+@if (_isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudStack>
+                    <MudIcon Icon="@Icons.Material.Filled.Description" Color="Color.Primary" Size="Size.Large" />
+                    <MudText Typo="Typo.h4">@_statistics.GetValueOrDefault("TotalDocuments", 0)</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Total Documents</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudStack>
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" />
+                    <MudText Typo="Typo.h4">@_statistics.GetValueOrDefault("ApprovedDocuments", 0)</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Approved</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudStack>
+                    <MudIcon Icon="@Icons.Material.Filled.PendingActions" Color="Color.Warning" Size="Size.Large" />
+                    <MudText Typo="Typo.h4">@_statistics.GetValueOrDefault("PendingReview", 0)</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Pending Review</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudStack>
+                    <MudIcon Icon="@Icons.Material.Filled.Category" Color="Color.Info" Size="Size.Large" />
+                    <MudText Typo="Typo.h4">@_statistics.GetValueOrDefault("TotalCategories", 0)</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Categories</MudText>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid Class="mt-8">
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudText Typo="Typo.h6" GutterBottom="true">Recent Documents</MudText>
+                <MudTable Items="@_recentDocuments" Hover="true" Breakpoint="Breakpoint.Sm" Dense="true">
+                    <HeaderContent>
+                        <MudTh>Title</MudTh>
+                        <MudTh>Category</MudTh>
+                        <MudTh>Uploaded By</MudTh>
+                        <MudTh>Date</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Actions</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Title">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@GetFileIcon(context.FileExtension)" Size="Size.Small" />
+                                <MudText>@context.Title</MudText>
+                            </MudStack>
+                        </MudTd>
+                        <MudTd DataLabel="Category">
+                            <MudChip Size="Size.Small" Color="Color.Primary">@context.Category?.Name</MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Uploaded By">@context.UploadedBy?.FirstName @context.UploadedBy?.LastName</MudTd>
+                        <MudTd DataLabel="Date">@context.UploadedAt.ToString("MMM dd, yyyy")</MudTd>
+                        <MudTd DataLabel="Status">
+                            <MudChip Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Actions">
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility"
+                                          Size="Size.Small"
+                                          OnClick="@(() => ViewDocument(context.Id))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudText Typo="Typo.h6" GutterBottom="true">Quick Actions</MudText>
+                <MudStack Spacing="2">
+                    <MudButton Variant="Variant.Filled"
+                              Color="Color.Primary"
+                              FullWidth="true"
+                              StartIcon="@Icons.Material.Filled.CloudUpload"
+                              Href="/upload">
+                        Upload Document
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Primary"
+                              FullWidth="true"
+                              StartIcon="@Icons.Material.Filled.Search"
+                              Href="/documents">
+                        Browse Documents
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Primary"
+                              FullWidth="true"
+                              StartIcon="@Icons.Material.Filled.Category"
+                              Href="/categories">
+                        Manage Categories
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Primary"
+                              FullWidth="true"
+                              StartIcon="@Icons.Material.Filled.AccountTree"
+                              Href="/workflows">
+                        View Workflows
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private bool _isLoading = true;
+    private Dictionary<string, int> _statistics = new();
+    private List<Document> _recentDocuments = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _statistics = await DocumentService.GetDocumentStatisticsAsync();
+            _recentDocuments = (await DocumentService.GetRecentDocumentsAsync(5)).ToList();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ViewDocument(int id)
+    {
+        NavigationManager.NavigateTo($"/documents/{id}");
+    }
+
+    private string GetFileIcon(string extension)
+    {
+        return extension.ToLower() switch
+        {
+            ".pdf" => Icons.Material.Filled.PictureAsPdf,
+            ".doc" or ".docx" => Icons.Material.Filled.Description,
+            ".xls" or ".xlsx" => Icons.Material.Filled.TableChart,
+            ".ppt" or ".pptx" => Icons.Material.Filled.Slideshow,
+            ".jpg" or ".jpeg" or ".png" or ".gif" => Icons.Material.Filled.Image,
+            ".zip" or ".rar" => Icons.Material.Filled.FolderZip,
+            _ => Icons.Material.Filled.InsertDriveFile
+        };
+    }
+
+    private Color GetStatusColor(DocumentStatus status)
+    {
+        return status switch
+        {
+            DocumentStatus.Draft => Color.Default,
+            DocumentStatus.PendingReview => Color.Warning,
+            DocumentStatus.Approved => Color.Success,
+            DocumentStatus.Rejected => Color.Error,
+            DocumentStatus.Archived => Color.Secondary,
+            DocumentStatus.Published => Color.Info,
+            _ => Color.Default
+        };
+    }
+}
