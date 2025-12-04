@@ -62,6 +62,26 @@
 {
     <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
 }
+else if (_hasError)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-4">
+        Unable to load documents. Please make sure the database is initialized.
+        <MudButton OnClick="@(() => NavigationManager.NavigateTo("/login"))" Variant="Variant.Text" Color="Color.Primary">
+            Go to Login
+        </MudButton>
+    </MudAlert>
+}
+else if (!_documents.Any())
+{
+    <MudPaper Elevation="2" Class="pa-8 text-center">
+        <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Large" Color="Color.Default" Class="mb-4" />
+        <MudText Typo="Typo.h5" GutterBottom="true">No Documents Found</MudText>
+        <MudText Typo="Typo.body1" Class="mb-4">Get started by uploading your first document</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" Href="/upload">
+            Upload Document
+        </MudButton>
+    </MudPaper>
+}
 else
 {
     <MudTable Items="@_documents" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@_isLoading" Dense="true">
@@ -126,6 +146,7 @@ else
 
 @code {
     private bool _isLoading = true;
+    private bool _hasError = false;
     private List<Document> _documents = new();
     private List<Category> _categories = new();
     private string _searchTerm = "";
@@ -141,6 +162,7 @@ else
     private async Task LoadDocuments()
     {
         _isLoading = true;
+        _hasError = false;
         try
         {
             _documents = (await DocumentService.GetAllDocumentsAsync()).ToList();
@@ -149,6 +171,7 @@ else
         {
             Snackbar.Add($"Error loading documents: {ex.Message}", Severity.Error);
             _documents = new();
+            _hasError = true;
         }
         finally
         {
