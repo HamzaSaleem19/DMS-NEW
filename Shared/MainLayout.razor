@@ -1,7 +1,7 @@
 @inherits LayoutComponentBase
 @inject NavigationManager NavigationManager
 
-<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="_theme" />
+<MudThemeProvider IsDarkMode="@_isDarkMode" IsDarkModeChanged="OnDarkModeChanged" Theme="_theme" />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
@@ -71,6 +71,11 @@
     private void ToggleDarkMode()
     {
         _isDarkMode = !_isDarkMode;
+    }
+
+    private void OnDarkModeChanged(bool value)
+    {
+        _isDarkMode = value;
     }
 
     private void Logout()
