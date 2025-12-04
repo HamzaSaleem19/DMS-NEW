@@ -14,6 +14,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
+// Add Authentication State
+builder.Services.AddScoped<Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider,
+    Microsoft.AspNetCore.Components.Server.ServerAuthenticationStateProvider>();
+
 // Add MudBlazor
 builder.Services.AddMudServices();
 
@@ -76,7 +80,7 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<ApplicationDbContext>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        await DbInitializer.Initialize(context, userManager, roleManager);
+        DbInitializer.Initialize(context, userManager, roleManager).GetAwaiter().GetResult();
     }
     catch (Exception ex)
     {
