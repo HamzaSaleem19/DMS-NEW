@@ -19,13 +19,13 @@
                          OnAdornmentClick="SearchDocuments" />
         </MudItem>
         <MudItem xs="12" md="3">
-            <MudSelect @bind-Value="_selectedCategoryId"
+            <MudSelect T="int?" @bind-Value="_selectedCategoryId"
                       Label="Category"
                       Variant="Variant.Outlined"
                       Clearable="true">
                 @foreach (var category in _categories)
                 {
-                    <MudSelectItem Value="@category.Id">@category.Name</MudSelectItem>
+                    <MudSelectItem T="int?" Value="@category.Id">@category.Name</MudSelectItem>
                 }
             </MudSelect>
         </MudItem>
