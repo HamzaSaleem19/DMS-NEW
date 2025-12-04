@@ -72,6 +72,37 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(d => d.CategoryId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Configure Workflow relationships to avoid multiple cascade paths
+        modelBuilder.Entity<WorkflowStep>()
+            .HasOne(ws => ws.WorkflowTemplate)
+            .WithMany(wt => wt.Steps)
+            .HasForeignKey(ws => ws.WorkflowTemplateId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<WorkflowInstance>()
+            .HasOne(wi => wi.WorkflowTemplate)
+            .WithMany(wt => wt.Instances)
+            .HasForeignKey(wi => wi.WorkflowTemplateId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<WorkflowInstance>()
+            .HasOne(wi => wi.Document)
+            .WithMany(d => d.WorkflowInstances)
+            .HasForeignKey(wi => wi.DocumentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<WorkflowStepInstance>()
+            .HasOne(wsi => wsi.WorkflowInstance)
+            .WithMany(wi => wi.StepInstances)
+            .HasForeignKey(wsi => wsi.WorkflowInstanceId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<WorkflowStepInstance>()
+            .HasOne(wsi => wsi.WorkflowStep)
+            .WithMany(ws => ws.StepInstances)
+            .HasForeignKey(wsi => wsi.WorkflowStepId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Configure indexes for performance
         modelBuilder.Entity<Document>()
             .HasIndex(d => d.UploadedById);
