@@ -139,9 +139,29 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        // For now, redirect to login page
-        // TODO: Implement proper authentication check
-        NavigationManager.NavigateTo("/login", true);
+        try
+        {
+            _statistics = await DocumentService.GetDocumentStatisticsAsync();
+            _recentDocuments = (await DocumentService.GetRecentDocumentsAsync(5)).ToList();
+        }
+        catch (Exception)
+        {
+            // Initialize with empty data if error occurs
+            _statistics = new Dictionary<string, int>
+            {
+                ["TotalDocuments"] = 0,
+                ["DraftDocuments"] = 0,
+                ["ApprovedDocuments"] = 0,
+                ["PendingReview"] = 0,
+                ["TotalCategories"] = 0,
+                ["TotalTags"] = 0
+            };
+            _recentDocuments = new List<Document>();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private void ViewDocument(int id)
