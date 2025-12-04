@@ -145,6 +145,11 @@ else
         {
             _documents = (await DocumentService.GetAllDocumentsAsync()).ToList();
         }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading documents: {ex.Message}", Severity.Error);
+            _documents = new();
+        }
         finally
         {
             _isLoading = false;
@@ -153,7 +158,15 @@ else
 
     private async Task LoadCategories()
     {
-        _categories = (await SearchService.SearchCategoriesAsync("")).ToList();
+        try
+        {
+            _categories = (await SearchService.SearchCategoriesAsync("")).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading categories: {ex.Message}", Severity.Error);
+            _categories = new();
+        }
     }
 
     private async Task SearchDocuments()
